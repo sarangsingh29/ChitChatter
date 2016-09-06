@@ -44,14 +44,36 @@ public class ChatThread extends Thread{
                         }
 
                         Socket outSocket = server.find(splittedMsg[0]);
-                        if (outSocket != null)
-                            outSocket.getOutputStream().write((uname+":"+splittedMsg[1]).getBytes());
+                        if (outSocket != null) {
+                            outSocket.getOutputStream().write((uname + ":" + splittedMsg[1]).getBytes());
+                            if(splittedMsg[1].contains("file")){
+                                handleFile(socketIn,outSocket.getOutputStream());
+                            }
+                        }
                         else{
                             System.out.println("Unknown recipient.");
                             socket.getOutputStream().write(new String("Unknown client").getBytes());
                         }
                     }
             }
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void handleFile(InputStream socketIn, OutputStream outSocket){
+        try{
+            System.out.println("File handling started.");
+            byte[] data=new byte[1024];
+            while(true){
+                int dataLen=socketIn.read(data);
+                outSocket.write(data,0,dataLen);
+                //System.out.println(new String(data,0,dataLen));
+                if(dataLen<1024)
+                    break;
+            }
+            System.out.println("File Handled.");
         }
         catch(Exception e){
             e.printStackTrace();

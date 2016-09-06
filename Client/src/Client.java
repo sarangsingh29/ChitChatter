@@ -31,6 +31,53 @@ public class Client {
         }
     }
 
+    public void sendFile(String fileName){
+        try{
+            /*
+                Maverick: Thread is made to sleep so that the file contents are not
+                sent as a normal message along with the file-send command.
+             */
+            Thread.currentThread().sleep(1000);
+            System.out.println("File sending started.");
+            File file=new File(fileName);
+            InputStream fileStream=new FileInputStream(file);
+            byte[]fileData=new byte[1024];
+            while(true){
+                int readData=fileStream.read(fileData);
+                clientSocket.getOutputStream().write(fileData,0,readData);
+                if(readData<1024)
+                    break;
+            }
+            System.out.println("File sent.");
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void receiveFile(String outFile){
+        try{
+            System.out.println("File receiving started.");
+            File file=new File(outFile);
+            if(!file.exists()){
+                file.createNewFile();
+                System.out.println("New file created.");
+            }
+            FileOutputStream fileOutStream=new FileOutputStream(file);
+            byte[] data=new byte[1024];
+            while(true){
+                int readLen=clientSocket.getInputStream().read(data);
+                fileOutStream.write(data,0,readLen);
+                if(readLen<1024)
+                    break;
+            }
+            System.out.println("File received. Saved as: "+ outFile);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
     public void startChat(){
         try {
             InputStream consoleIn = System.in;
@@ -44,11 +91,21 @@ public class Client {
                 msgLen=0;
                 if(consoleIn.available()!=0){
                     msgLen=consoleIn.read(msg);
-
                     /*
                         Maverick: Sending one byte less to avoid the newline character.
                      */
                     socketOut.write(msg,0,msgLen-1);
+                    String stringMsg=new String(msg,0,msgLen-1);
+
+                    if(stringMsg.compareTo("clear")==0){
+                        System.out.println("\n\n\n\n\n");
+                        continue;
+                    }
+
+                    String[]splittedMsg=stringMsg.split(":");
+                    if(splittedMsg.length>=2 && splittedMsg[1].split(" ")[0].compareTo("file")==0){
+                        sendFile(splittedMsg[1].split(" ")[1]);
+                    }
 
                     if(new String(msg,0,msgLen-1).compareTo("stop")==0){
                         System.out.println("Going offline.");
@@ -58,6 +115,11 @@ public class Client {
                 if(socketIn.available()!=0){
                     msgLen=socketIn.read(msg);
                     System.out.println(new String(msg,0,msgLen));
+                    String[]splittedMsg=new String(msg,0,msgLen).split(":");
+                    if(splittedMsg.length>=2 && splittedMsg[1].contains("file")){
+                        System.out.print("Output File Name: ");
+                        receiveFile(new Scanner(System.in).nextLine());
+                    }
                 }
             }
         }
